@@ -1,0 +1,144 @@
+#include <Servo.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+
+#define TRIG 
+#define ECHO 
+#define SERVO 
+
+#define IN1 
+#define IN2 
+#define IN3 
+#define IN4 
+
+int ir = ;
+int button = ;
+
+int count = 0;
+int buttonpress = 0;
+int turntime = 600;
+
+Servo scanner;
+
+LiquidCrystal_I2C lcd(0x27,16,2);
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  pinMode(ir, INPUT);
+  pinMode(button, INPUT_PULLUP);
+
+  scanner.attach(SERVO);
+  scanner.write(90);
+
+  lcd.init();
+  lcd.backlight();
+}
+
+long getDistance() {
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(4);
+  digitalWrite(TRIG, LOW);
+
+  long duration = pulseIn(ECHO, HIGH);
+  return duration * 0.034 / 2; 
+}
+
+void moveForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
+
+void turnLeft() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void turnRight() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void loop() {
+  long distance = getDistance();
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  if(digitalRead(button) == LOW){
+    buttonpress +=1;
+  }
+  if((digitalRead(button) == LOW) && (buttonpress > 1)){
+    buttonpress = 0;
+  }
+
+if(buttonpress > 1){
+ if(digitalRead(ir) == LOW){
+  if (distance < 15) {
+    stopMotors();
+    delay(500);
+
+    scanner.write(180);
+    delay(500);
+    long leftDist = getDistance();
+
+    scanner.write(0);
+    delay(500);
+    long rightDist = getDistance();
+
+    scanner.write(90);
+    delay(300);
+
+    if (leftDist > rightDist) {
+      Serial.println("Turning Left");
+      turnLeft();
+      count += 1;
+      delay(turntime);
+      
+    } else {
+      Serial.println("Turning Right");
+      turnRight();
+      count += 1;
+      delay(turntime);
+    }
+    delay(700);
+  } else {
+    moveForward();
+   }
+  }
+  else{
+  stopMotors();
+ }
+ if(digitalRead(button) == LOW){
+    buttonpress = 0;
+  }
+}else{
+  stopMotors();
+ }
+
+ lcd.setCursor(0,0);
+ lcd.print(count);
+ 
+}
